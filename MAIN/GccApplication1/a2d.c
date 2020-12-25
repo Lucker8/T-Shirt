@@ -110,12 +110,35 @@ unsigned long millis()
 void register_setup()
 {
 	cli();
-	
 	TCCR0B |= 0x03; //Sets prescaler for timer0 to 64
 	TIMSK0 |= 0x01; //Enables interupt on timer0 overflow
 	EECR = 0x00;
 	EICRA |= (1<<ISC11) | (1<<ISC10); //sets int1 to trigger on rising edge
 	EIMSK |= (1<<INT1); //enables int1 external interrupt
-
+	ADMUX = (1<<REFS0);//set prescaler to 128 and turn on the ADC module
+	ADCSRA = (1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0)|(1<<ADEN);
 	sei();
+}
+
+
+void MMA8451_init()
+{
+	i2c_write_reg(accel_i2c_adr_a0, CTRL_REG1, 0x02);
+	i2c_write_reg(accel_i2c_adr_a0, CTRL_REG2, 0x02);
+	i2c_write_reg(accel_i2c_adr_a0, XYZ_DATA_CFG, 0x02);
+	i2c_write_reg(accel_i2c_adr_a0, F_SETUP, 0x00);
+	i2c_write_reg(accel_i2c_adr_a0, CTRL_REG1, 0x03);
+}
+
+void get_data_accel(int *x, int *y, int *z)
+{
+	
+	int raw;
+	i2c_start(accel_i2c_adr_a0_write);
+	i2c_write(OUT_X_MSB);
+	i2c_start(accel_i2c_adr_a0_read);
+	*x = (i2c_readAck()<<8);
+	*y = (i2c_readAck()<<8);
+	*z = (i2c_readNak()<<8);
+	//i2c_stop();
 }

@@ -25,7 +25,7 @@ void gr_screen(int mode);
 
 int main(void)
 {
-	double temperature,true_humidity, max_temp,min_temp,max_hum,min_hum,t_s,h_s;
+	double temperature,true_humidity, max_temp,min_temp,max_hum,min_hum,t_s;
 	long unsigned timer_c;
 	int state=0;
 
@@ -49,7 +49,6 @@ int main(void)
 	true_humidity=get_humidity(adc_read(6))/(1.0546-0.00216*temperature);			//setting up starting humidity
 	max_hum=true_humidity;
 	min_hum=true_humidity;
-	h_s=true_humidity;
 
 	while(1)
 	{
@@ -180,7 +179,7 @@ int main(void)
 								while((true_humidity<25 || true_humidity>65))
 								{
 									LCD_set_cursor(0,0);
-									printf("humidity=:%02.1f %",true_humidity);
+									printf("humidity=:%02.1f %%",true_humidity);
 									LCD_set_cursor(0,1);
 									printf("!ALERT!");
 									LCD_set_cursor(0,2);
@@ -254,8 +253,9 @@ int main(void)
 			LCD_clear();
 			_delay_ms(50);
 		}
-
+		}
 	}
+
 	return 0;
 
 }

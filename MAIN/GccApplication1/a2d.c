@@ -14,7 +14,7 @@
 #include "ds1621.h"
 #include "lcd.h"
 #include "a2d.h"
-#include "usart.h"
+#include "i2cmaster.h"
 
 #ifndef F_CPU
 #define F_CPU 16000000UL
@@ -60,7 +60,7 @@ uint16_t adc_read(uint8_t adc_channel)//the user inputs from 0-7 for the desired
 	// now wait for the conversion to complete
 	while ( (ADCSRA & (1<<ADSC)) );
 	ADMUX &= 0xf0; // clear any previously used channel, but keep internal reference
-	
+
 	// now we have the result, so we return it to the calling function as a 16 bit unsigned int
 	return ADC;
 }
@@ -68,15 +68,15 @@ uint16_t adc_read(uint8_t adc_channel)//the user inputs from 0-7 for the desired
 double get_humidity(uint16_t adc_data)//returns the data from humidity sensor in RH%
 {
 	double rh,volts;//10 bits
-	volts = (adc_data*V_IN)/1024;//10 bits
-	
+	volts = (adc_data*V_REF)/1024;//10 bits
+
 	rh=(volts-ZERO_OFFSET)/SLOPE;
 	return rh;
 }
 
 double get_temp_lm(uint16_t adc_data)//temp reading for lm35
 {
-  double volts = (adc_data*V_IN)/1024;//10 bits
+  double volts = (adc_data*V_REF)/1024;//10 bits
   return volts*100;
 }
 
@@ -96,7 +96,7 @@ ISR (TIMER0_OVF_vect) // timer0 overflow interrupt
 	timer0_overflow_count++;
 }
 
-unsigned long millis()
+unsigned long micros()
 {
 	unsigned long m;
 	// disable interrupts while we read timer0_millis or we might get an
@@ -132,8 +132,6 @@ void MMA8451_init()
 
 void get_data_accel(int *x, int *y, int *z)
 {
-	
-	int raw;
 	i2c_start(accel_i2c_adr_a0_write);
 	i2c_write(OUT_X_MSB);
 	i2c_start(accel_i2c_adr_a0_read);
@@ -141,4 +139,21 @@ void get_data_accel(int *x, int *y, int *z)
 	*y = (i2c_readAck()<<8);
 	*z = (i2c_readNak()<<8);
 	//i2c_stop();
+}
+
+void i2c_write_reg(char device, char reg, char data)
+{
+	i2c_start(device + I2C_WRITE);
+	i2c_write(reg);
+	i2c_write(data);
+	i2c_stop();
+}
+char i2c_read_reg(char device, char reg)
+{
+	i2c_start(device + I2C_WRITE);
+	i2c_write(reg);
+	i2c_start(device + I2C_READ);
+	char data = i2c_readNak();
+	i2c_stop();
+	return data;
 }

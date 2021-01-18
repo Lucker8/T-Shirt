@@ -35,9 +35,9 @@ int main(void)
 	register_setup();
 	DDRD = 0x0F; //I/O board:PD4..7 as inputs, for buttons. 0-3 output
 	DDRC = 0x3B; //I/O 2 input for temp, 6 input for hum
-	PORTC = 0x74; //try this if fail 0x30 // Enable internal pull at 4-6 and 2 inputs
+	PORTC = 0x30; //try this if fail 0x30 // Enable internal pull at 4-6 and 2 inputs
 	PORTD = 0xF0; // internal pull up at 4-7
-	gr_screen(0);     //0 hello, 1 goodbye
+	gr_screen(0);  //0 hello, 1 goodbye
 
 	_delay_ms(200);
 
@@ -61,9 +61,10 @@ int main(void)
 		LCD_set_cursor(0,2);
 		printf("B2-Humidity");
 		LCD_set_cursor(0,3);
-		printf("Heart rate");
+		printf("B3-Heart rate");
 
-		if (!((PIND&B1)==B1)){
+		if (((PIND&B1)==B1))
+		{
 													//TEMP MENU
 			LCD_clear();
 			while((PIND&B4)==B4)
@@ -84,45 +85,40 @@ int main(void)
 				printf("Back");
 
 				if(micros()-timer_c>5000)//takes measurement every 500ms
-				{
+					{
 					timer_c=micros();
 					temperature = get_temp_lm(adc_read(2));
 					if (temperature<min_temp) min_temp=temperature;
 					if (temperature>max_temp) max_temp=temperature;
 
-				}
+					}
 				if(abs(t_s-temperature)>=0.5 && state!=3)
 					{
 						state=1;LCD_clear();
 						while(abs(t_s-temperature)>=0.5)
 						{
 							LCD_set_cursor(0,0);
-							printf("temp=:%02.1f\337C",temperature);
+							printf("Temp :%02.1f\337C",temperature);
 							LCD_set_cursor(0,1);
 							printf("!ALERT!");
 							LCD_set_cursor(0,2);
 							printf("Temp diff. high!");
-							if(micros()-timer_c>5000)//takes measurement every 500ms
-							{
-								timer_c=micros();
-								temperature = get_temp_lm(adc_read(2));
-								while(micros()-timer_c<5000)
-								{
-									PORTD|=(1<<3);
-								}
-								PORTD&=~(1<<3);
-							}
 							LCD_set_cursor(0,3);
 							printf("B1 to ignore OR wait!");
-							if(!((PIND&B1)==B1))
-							{
+							if(micros()-timer_c>5000)//takes measurement every 500ms
+								{
+								timer_c=micros();
+								temperature = get_temp_lm(adc_read(2));
+								}
+							if(((PIND&B1)==B1))
+								{
 								state=2;
 								LCD_clear();
 								break;
-							}
+								}
+								
 						}
 					}
-
 				LCD_set_cursor(0,1);
 				printf("Current: %02.1f\337C",temperature);
 				LCD_set_cursor(0,2);
@@ -139,7 +135,7 @@ int main(void)
 
 
 
-		if (!((PIND&B2)==B2))
+		if (((PIND&B2)==B2))
 		{
 																//HUMIDITY MENU
 			_delay_ms(200);
@@ -179,30 +175,28 @@ int main(void)
 								while((true_humidity<25 || true_humidity>65))
 								{
 									LCD_set_cursor(0,0);
-									printf("humidity=:%02.1f %%",true_humidity);
+									printf("Humidity: %02.1f %%",true_humidity);
 									LCD_set_cursor(0,1);
 									printf("!ALERT!");
 									LCD_set_cursor(0,2);
 									printf("HUMIDITY");
 									if(micros()-timer_c>5000)//takes measurement every 500ms
-									{
-										timer_c=micros();
-										true_humidity = get_humidity(adc_read(6))/(1.0546-0.00216*temperature);
-										while(micros()-timer_c<5000)
 										{
-											PORTD|=(1<<3);
+											timer_c=micros();
+											true_humidity = get_humidity(adc_read(6))/(1.0546-0.00216*temperature);
+										
+											LCD_set_cursor(0,3);
+											printf("B1 to ignore OR wait!");
 										}
-										PORTD&=~(1<<3);
-									}
-									LCD_set_cursor(0,3);
-									printf("B1 to ignore OR wait!");
-									if(!((PIND&B1)==B1))
-									{
-										state=2;
-										LCD_clear();
-										break;
-									}
+									if(((PIND&B1)==B1))
+										{
+											state=2;
+											LCD_clear();
+											break;
+										}
+										
 								}
+							}
 					}
 				}
 				if (max_hum>100)
@@ -213,47 +207,50 @@ int main(void)
 					_delay_ms(1000);
 					break;
 				}
-					else
-				{
-					LCD_set_cursor(0,1);
-					printf("Current humidity: %.2f",true_humidity);
-					LCD_set_cursor(0,2);
-					printf("Min Humidity: %.2f",max_hum);
-					LCD_set_cursor(0,3);
-					printf("Max Humidity: %.2f",min_hum);
-
+				else
+					{
+						LCD_set_cursor(0,1);
+						printf("Current Hum.: %.2f",true_humidity);
+						LCD_set_cursor(0,2);
+						printf("Min Hum.: %.2f",min_hum);
+						LCD_set_cursor(0,3);
+						printf("Max Hum.: %.2f",max_hum);
+					}
 				}
-
-
-			}
+			
 			LCD_clear();
 			state = 0;
 			_delay_ms(100);
 		}
 
-		if(!((PIND&B3)==B3))
+		if(((PIND&B3)==B3))
 		{									//HEART RATE MENU
 			_delay_ms(200);
+			timer_c=micros();
 			LCD_clear();
 			while((PIND&B4)==B4)
-			{
+			{	
+				
 				LCD_set_cursor(0,0);
 				printf("Heart Rate");
 				LCD_set_cursor(16,3);
 				printf("Back");
-				/*if(micros()-t>5000)//takes measurement every 500ms
+				/*
+				if(micros()-timer_c>5000)//takes measurement every 500ms
 				{
 					timer_c=micros();
-
-
+					PORTD|=(1<<3);
+					_delay_ms(500);
+					PORTD&=0xF0;
 				}*/
+				
 				LCD_set_cursor(0,1);
 				printf("0"); //replace with get_hr
 			}
 			LCD_clear();
 			_delay_ms(50);
 		}
-		}
+		
 	}
 
 	return 0;
